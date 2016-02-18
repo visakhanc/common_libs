@@ -8,9 +8,10 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include "avr_spi.h"
-#include "nrf24l01P_config.h"
+#include "nrf24l01P.h"
 
 /* 
+ *  Example connection layout (CE pin can change)
  * 	nRF			ATmega8
 	-------------------
 	SCK			SCK(PB5)
@@ -98,7 +99,7 @@ static uint8_t nrf_read_reg(uint8_t reg)
 	value = SPI_TxRx(0);  /* Then get the register value */
 	CSN_HIGH();
 	
-	return reg;
+	return value;
 }
 
 /* Writes to a register */
@@ -111,8 +112,11 @@ static uint8_t nrf_write_reg(uint8_t reg, uint8_t val)
 		status = SPI_TxRx(WRITE_REG|reg);  
 		SPI_TxRx(val);
 	}
-	else { /* command with no data */
+	else { /* command with (optional) data */
 		status = SPI_TxRx(reg);
+		if(val) {
+			SPI_TxRx(val);
+		}
 	}
 	CSN_HIGH();
 	
@@ -191,6 +195,10 @@ static void nrf_write_multibyte_reg(uint8_t reg, const uint8_t *buf, uint8_t len
 		case NRF_TX_PLOAD:  /* Write Tx payload */
 			CSN_LOW();
 			SPI_TxRx(WR_TX_PLOAD);
+			break;
+		case NRF_TX_PLOAD_NOACK: /* Write Tx payload with no ACK */
+			CSN_LOW();
+			SPI_TxRx(WR_NAC_TX_PLOAD);
 			break;
 		default:
 			break;
@@ -275,10 +283,13 @@ void nrf_init(nrf_opmode_t mode, const uint8_t *address)
 	if(!CONFIG_NRF_AUTOACK_ENABLED) {
 		reg_val |= (1 << 0);
 	}
-	nrf_write_reg(LOCK_UNLOCK,0);  
-	nrf_write_reg(0x73,0);			/* Unlock FEATURE register */
+	nrf_write_reg(LOCK_UNLOCK,0x73);  /* Unlock FEATURE register */		
 	nrf_write_reg(FEATURE, reg_val);
 	
+	if(CONFIG_NRF_DYNAMIC_PL_ENABLED||CONFIG_NRF_ACK_PL_ENABLED) { /* Enable dynamic payload length (for Pipe 0 only) */
+		reg_val = (1 << 0);
+		nrf_write_reg(DYNPD, reg_val);
+	}
 
 	/* Retransmit reg */
 	reg_val = 0;
@@ -298,7 +309,6 @@ void nrf_init(nrf_opmode_t mode, const uint8_t *address)
 	reg_val |= (CONFIG_NRF_TX_PWR << 1);
 	nrf_write_reg(RF_SETUP, reg_val);
 
-
 	/* RF Channel reg*/
 	nrf_write_reg(RF_CH, CONFIG_NRF_RF_CHANNEL);
 	
@@ -313,7 +323,6 @@ void nrf_init(nrf_opmode_t mode, const uint8_t *address)
 	if(mode == NRF_MODE_PRX) {
 		CE_HIGH();
 	}
-	
 	_delay_ms(5);
 }
 

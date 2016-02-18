@@ -1,13 +1,12 @@
-/** 
- * Register definitions with bit definitions for the nRF24L01
- * 
+/* 
+ * Register definitions for RFM70 RF modules 
  */
+ 
+#ifndef RFM70_REG_H
+#define RFM70_REG_H
 
-#ifndef NRF24L01P_REG_H
-#define NRF24L01P_REG_H
 
-
-/* nRF24L01 Instruction Definitions */
+/* RFM70 Instruction Definitions */
 #define WRITE_REG     	0x20  
 #define RD_RX_PLOAD_W   0x60
 #define RD_RX_PLOAD   	0x61  
@@ -21,7 +20,7 @@
 #define NOP           	0xFF 
 
 
-/* nRF24L01 Register address definitions */
+/* RFM70 Register address definitions */
 #define CONFIG        0x00
 #define EN_AA         0x01
 #define EN_RXADDR     0x02
@@ -87,41 +86,42 @@
 
 /* Operation mode */
 typedef enum {
-    NRF_MODE_PTX = 0,            
-    NRF_MODE_PRX             
-} nrf_opmode_t;
+    RFM70_MODE_PTX = 0,            
+    RFM70_MODE_PRX             
+} rfm70_opmode_t;
 
 
 /* Output power modes */
 typedef enum {
-    NRF_PWR_18DBM = 0,         
-    NRF_PWR_12DBM,
-    NRF_PWR_6DBM, 
-    NRF_PWR_0DBM  
-} nrf_power_t;
+    RFM70_PWR_M10DBM = 0,         
+    RFM70_PWR_M5DBM,
+    RFM70_PWR_0DBM, 
+    RFM70_PWR_P5DBM  
+} rfm70_power_t;
 
 /* data rate */
 typedef enum {        
-	NRF_RATE_250KBPS = 0,
-    NRF_RATE_1MBPS,          
-    NRF_RATE_2MBPS           
-} nrf_datarate_t;
+	RFM70_RATE_250KBPS = 0,
+    RFM70_RATE_1MBPS,          
+    RFM70_RATE_2MBPS           
+} rfm70_datarate_t;
 
 
 /* pipe numbers */
 typedef enum {
-    NRF_PIPE0 = 0,         
-    NRF_PIPE1,         
-    NRF_PIPE2,         
-    NRF_PIPE3,         
-    NRF_PIPE4,         
-    NRF_PIPE5,
-	NRF_TX_PIPE,
-	NRF_TX_PLOAD, /* for writing tx payload */
-	NRF_TX_PLOAD_NOACK, /* for tx payload with no ACK */
-	NRF_RX_PLOAD, /* for reading rx payload */
-    NRF_PIPE_ALL = 0xFF
-} nrf_pipe_t;
+    RFM70_PIPE0 = 0,         
+    RFM70_PIPE1,         
+    RFM70_PIPE2,         
+    RFM70_PIPE3,         
+    RFM70_PIPE4,         
+    RFM70_PIPE5,
+	RFM70_TX_PIPE,
+	RFM70_TX_PLOAD, /* for writing tx payload */
+	RFM70_TX_PLOAD_NOACK, /* for tx payload with no ACK */
+	RFM70_RX_PLOAD, /* for reading rx payload */
+    RFM70_PIPE_ALL = 0xFF
+} rfm70_pipe_t;
 
 
-#endif  // NRF24L01P_REG_H
+
+#endif

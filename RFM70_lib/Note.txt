@@ -1,2 +1,0 @@
-Dont use Library 
-Use the rfm70_config.h approach instead

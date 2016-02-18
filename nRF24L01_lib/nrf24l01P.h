@@ -7,6 +7,7 @@
 #define NRF24L01P_H
 
 #include <avr/io.h>
+#include "nrf24l01P_reg.h"
 #include "nrf24l01P_config.h"
 
 /* Public funtions */
