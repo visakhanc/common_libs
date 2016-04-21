@@ -25,7 +25,12 @@
 	
 	4 pins of SPI interface (SCK,MISO,MOSI,CSN) and IRQ pin(if interrupt mode is used) should not be changed
 	Only CE pin can be changed. This pin is configured in rfm70_config.h
-	
+
+TODO:
+
+ * rfm70_receive_packet(): how to handle data from multiple pipes?
+ * PRX recovers only if PTX is in interrupt mode: If PRX comes up later it does not receive(no LED blink)
+		Happens if PTX is in polled mode (PRX can be int/polled). Seen during testing of ACK packet 
 ******************************************************************************/
 
 
@@ -83,12 +88,17 @@
 	#endif
 #endif
 
+/* This is the pipe1 address to be configured for PRX device
+	pipe2...pipe6 address will change only in LSB byte as C3, C4...C6 */
+#define CONFIG_RFM70_PIPE1_ADDR 	{0xC2, 0xC2, 0xC2, 0xC2, 0xC2}
 
 
 static volatile bool tx_done;
 static volatile bool rx_ready;
 static volatile bool max_retries;
+static uint8_t pipe1_addr[] = CONFIG_RFM70_PIPE1_ADDR;
 
+static void rfm70_irq(void);
 
 //Bank1 register initialization value
 
@@ -174,7 +184,7 @@ static inline uint8_t rfm70_nop(void)
 
 static inline uint8_t rfm70_get_rx_pipe(void)
 {
-	return ((rfm70_nop() >> 1) & 0x7);
+	return ((rfm70_write_reg(NOP,0) >> 1) & 0x7);
 }
 
 static inline uint8_t rfm70_get_address_width(void)
@@ -182,11 +192,11 @@ static inline uint8_t rfm70_get_address_width(void)
 	return (rfm70_read_reg(SETUP_AW) + 2);
 }
 
-
+#if 0
 /* Reads Multibyte register 
  * return value: MSByte - Rx payload pipe number. LSByte - read length
  */
-static uint16_t rfm70_read_multibyte_reg(uint8_t reg, uint8_t *buf)
+uint16_t rfm70_read_multibyte_reg(uint8_t reg, uint8_t *buf)
 {
 	uint8_t ctr = 0, length = 0;
 	
@@ -221,6 +231,7 @@ static uint16_t rfm70_read_multibyte_reg(uint8_t reg, uint8_t *buf)
 	return (((uint16_t) reg << 8) | length);
 }
 
+#endif
 
 /* Writes to Multibyte register 
  * 
@@ -317,36 +328,43 @@ static void rfm70_switch_bank(char bank)
  *		Enable pipes (with/without auto ack)
  * 		Set data rate, power, payload length and other things
  *		Set mode to Tx/Rx
+ *
+ *		Returns: 0 on success, 1 on error with SPI communication
  */  
-void rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
+uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 {
-	uint8_t i, j, reg_val;
+	uint8_t i, j, reg_val, ret = 0;
  	uint8_t WriteArr[12];
 
 	/* low level initialization */
 	mcu_init();
 	
-	//delay more than 50ms.
-	_delay_ms(200);
-	
+	_delay_ms(20); //delay more than 50ms?
 	/*** configure bank 0 registers ***/
 	
 	rfm70_switch_bank(0);
 	/* Set Address */
 	rfm70_write_reg(SETUP_AW, (uint8_t)(CONFIG_RFM70_ADDR_LEN-2));  /* Address width */
-	rfm70_set_address(RFM70_TX_PIPE, address);  /* Set same address for Tx and Pipe0, for auto ack */
-	rfm70_set_address(RFM70_PIPE0, address);
-
+	if(mode == RFM70_MODE_PTX) { /* For Tx mode, Set same address for Tx and Pipe0 (auto ack) */
+		rfm70_set_address(RFM70_TX_PIPE, address);  
+		rfm70_set_address(RFM70_PIPE0, address);
+	}
+	else { /* For Rx mode, set as many pipe address as needed */
+		rfm70_set_address(RFM70_PIPE0, address);
+		rfm70_set_address(RFM70_PIPE1, pipe1_addr);
+	}
+	
 	/* Open channels */
-	reg_val = (1 << 0); /* open only Pipe0 */
+	reg_val = (1 << 0)|(1 << 1); /* open Pipe0, Pipe1 */
 	rfm70_write_reg(EN_RXADDR, reg_val);
 	if(CONFIG_RFM70_AUTOACK_ENABLED) {
-		reg_val = (1 << 0);  /* Enable auto ack (only for Pipe 0) */
+		reg_val = (1 << 0)|(1 << 1);  /* Enable auto ack (only for Pipe 0) */
 		rfm70_write_reg(EN_AA, reg_val);
 	}
 	/* Set payload length (only for Pipe 0)*/
 	if(mode == RFM70_MODE_PRX) {
 		rfm70_write_reg(RX_PW_P0, CONFIG_RFM70_STATIC_PL_LENGTH);
+		rfm70_write_reg(RX_PW_P1, CONFIG_RFM70_STATIC_PL_LENGTH);
 	}
 	/* FEATURE reg */
 	reg_val = 0;
@@ -363,8 +381,8 @@ void rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 		rfm70_write_reg(LOCK_UNLOCK,0x73);  /* Unlock FEATURE register */		
 	}
 	rfm70_write_reg(FEATURE, reg_val);
-	if(CONFIG_RFM70_DYNAMIC_PL_ENABLED||CONFIG_RFM70_ACK_PL_ENABLED) { /* Enable dynamic payload length (for Pipe 0 only) */
-		reg_val = (1 << 0);
+	if(CONFIG_RFM70_DYNAMIC_PL_ENABLED||CONFIG_RFM70_ACK_PL_ENABLED) { /* Enable dynamic payload length (for Pipe 0, Pipe 1 only) */
+		reg_val = (1 << 0)|(1 << 1);
 		rfm70_write_reg(DYNPD, reg_val);
 	}
 	/* Retransmit reg */
@@ -378,7 +396,7 @@ void rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 	reg_val &= ~(RF_DR_LOW|RF_DR_HIGH|RF_PWR1|RF_PWR0);
 	if(CONFIG_RFM70_DATA_RATE == RFM70_RATE_250KBPS) {
 		reg_val |= RF_DR_HIGH;
-	} else if(CONFIG_RFM70_DATA_RATE == RFM70_RATE_2MBPS) {  
+	} else if(CONFIG_RFM70_DATA_RATE == RFM70_RATE_2MBPS) {
 		reg_val |=  RF_DR_LOW;
 	}
 	reg_val |= (CONFIG_RFM70_TX_PWR << 1);
@@ -386,7 +404,11 @@ void rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 
 	/* RF Channel reg*/
 	rfm70_write_reg(RF_CH, CONFIG_RFM70_RF_CHANNEL);	
-
+	reg_val = rfm70_read_reg(RF_CH);
+	if(CONFIG_RFM70_RF_CHANNEL != reg_val) {
+		ret = 1;
+	}
+	
 	/***** Write Bank1 registers *****/
 	rfm70_switch_bank(1);
 	for(i=0;i<=8;i++)//reverse
@@ -424,11 +446,11 @@ void rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 	reg_val = (CONFIG_EN_CRC|CONFIG_CRCO|CONFIG_PWR_UP);
 	if(mode == RFM70_MODE_PRX) {	
 		reg_val |= 1;
-		rfm70_write_reg(FLUSH_RX,0);//flush Tx
+		rfm70_write_reg(FLUSH_RX,0);//flush Rx fifo
 		CE_HIGH(); /* Set CE High for Rx mode */
 	}
 	else {
-		rfm70_write_reg(FLUSH_TX,0);//flush Tx
+		rfm70_write_reg(FLUSH_TX,0);//flush Tx fifo
 	}
 	rfm70_write_reg(CONFIG, reg_val);
 	
@@ -436,6 +458,8 @@ void rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 	rfm70_write_reg(STATUS,STAT_TX_DS|STAT_MAX_RT|STAT_RX_DR); 
 	
 	_delay_ms(2); /* delay after power up */
+	
+	return ret;
 }
 
 
@@ -494,11 +518,7 @@ void rfm70_powerdown(void)
 uint8_t rfm70_transmit_packet(uint8_t *packet, uint8_t length)
 {
 	uint8_t 	ret;
-#if CONFIG_RFM70_POLLED_MODE
-	uint8_t 	status;
-#endif
-	
-	
+
 	if(rfm70_read_reg(FIFO_STATUS) & TX_FIFO_FULL) {
 		return 2;
 	}
@@ -507,12 +527,7 @@ uint8_t rfm70_transmit_packet(uint8_t *packet, uint8_t length)
 	CE_PULSE();
 	do {
 #if CONFIG_RFM70_POLLED_MODE
-		status = rfm70_read_reg(STATUS);
-		tx_done = (status & STAT_TX_DS) ? true:false;
-		max_retries = (status & STAT_MAX_RT) ? true:false;
-		if(rx_ready||max_retries) {
-			rfm70_write_reg(STATUS, STAT_TX_DS|STAT_MAX_RT);
-		}
+		rfm70_irq();
 #endif
 		if(tx_done == true) {
 			tx_done = false;
@@ -532,37 +547,29 @@ uint8_t rfm70_transmit_packet(uint8_t *packet, uint8_t length)
 
 /* 
  *  Receive a packet if available
- *	Returns: 16 bit
- *		MSB byte: pipe number
- *		LSB byte: length of received packet
+ *	Returns:  pipe number
+ *		
  */
 uint8_t rfm70_receive_packet(uint8_t *buf, uint8_t *length)
 {
 	uint8_t rx_pipe = 0;
-	uint16_t ret;
-#if CONFIG_RFM70_POLLED_MODE
-	uint8_t status;
-#endif
 	
 #if CONFIG_RFM70_POLLED_MODE
-	/* Check for Rx packet ready in STATUS reg */
-	status = rfm70_read_reg(STATUS);
-	rx_ready = (status & STAT_RX_DR) ? true : false;
-	if(rx_ready) {
-		/* Clear flag */
-		rfm70_write_reg(STATUS, STAT_RX_DR);
-	}
+	rfm70_irq();
 #endif
-
 	*length = 0;
 	if(rx_ready == true) {
 		rx_ready = false;
+		rx_pipe = rfm70_get_rx_pipe();
 		do {
-			ret = rfm70_read_multibyte_reg(RFM70_RX_PLOAD, buf);
+			*length = rfm70_read_reg(RD_RX_PLOAD_W);
+			CSN_LOW();
+			SPI_TxRx(RD_RX_PLOAD);
+			SPI_RxBuf(buf, *length);
+			CSN_HIGH();
 		} while (!(rfm70_read_reg(FIFO_STATUS) & RX_EMPTY));
-		*length = (uint8_t)ret;
-		rx_pipe = (uint8_t)(ret >> 8);
 	}
+	
 	return rx_pipe;
 }
 
@@ -576,14 +583,43 @@ void rfm70_set_ack_payload(uint8_t pipe, uint8_t *buf, uint8_t length)
 {
 	CSN_LOW();
 	SPI_TxRx(WR_ACK_PLOAD|pipe);
-	while(length--) {
+	/*while(length--) {
 		SPI_TxRx(*buf++);
-	}
+	}*/
+	SPI_TxBuf(buf, length);
 	CSN_HIGH();
 }
 
 
-
+/* Function to handle RFM70 Interupt; also used to poll the status continuously */
+static void rfm70_irq(void)
+{
+	uint8_t status;
+	
+	//status = rfm70_write_reg(STATUS, (STAT_MAX_RT|STAT_TX_DS|STAT_RX_DR)); /* Get and clear interrupt flags */
+	status = rfm70_read_reg(STATUS);
+	if(status) {
+		rfm70_write_reg(STATUS, status);
+		if(status & STAT_RX_DR)
+		{
+			/* received data */
+			rx_ready = true;
+		}
+		
+		if(status & STAT_TX_DS)
+		{
+			/* transmit done */
+			tx_done = true;
+		}
+		
+		if(status & STAT_MAX_RT)
+		{
+			/* Maximum retries exceeded */
+			max_retries = true;
+			rfm70_write_reg(FLUSH_TX,0);//flush Rx fifo
+		}
+	}
+}
 
 /**************************************************
 Function: ISR for RFM70 IRQ
@@ -596,28 +632,8 @@ Return:
 **************************************************/
 #if !CONFIG_RFM70_POLLED_MODE
 ISR(INT1_vect)
-{
-	uint8_t status;
-	
+{	
 	//PORTB &= ~(1 << 0); // LED OFF
-	
-	status = rfm70_write_reg(STATUS, (STAT_MAX_RT|STAT_TX_DS|STAT_RX_DR)); /* Get and clear interrupt flags */
-	if(status & STAT_RX_DR)
-	{
-		/* received data */
-		rx_ready = true;
-	}
-	
-	if(status & STAT_TX_DS)
-	{
-		/* transmit done */
-		tx_done = true;
-	}
-	
-	if(status & STAT_MAX_RT)
-	{
-		/* Maximum retries exceeded */
-		max_retries = true;
-	}
+	rfm70_irq();
 }
 #endif

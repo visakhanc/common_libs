@@ -11,7 +11,7 @@
 #include "rfm70_reg.h"
 
 
-void rfm70_init(rfm70_opmode_t mode, const uint8_t *address);
+uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address);
 uint8_t rfm70_transmit_packet(uint8_t* pbuf, uint8_t len);
 uint8_t rfm70_receive_packet(uint8_t* pbuf, uint8_t* length);
 void rfm70_set_ack_payload(uint8_t pipe, uint8_t *buf, uint8_t length);
