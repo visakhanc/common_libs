@@ -1,6 +1,12 @@
 /* 
- *  Library to detect remote control code pulses through TSOP18xx IR receiver
+ *  Library to detect IR remote control code pulses through TSOP18xx IR receiver
  *		- INT0 interrupt and Timer0 is used
+ *
+ *  TSOP1838 output pin is connected to INT0 of AVR
+ * 	Timer0 is used for timing
+ *
+ *	This library is for IR NEC protocol
+ * 	TODO: Protocol uses LSB-first, so we need to bit reverse the received code 
  */
  
 #include <stdint.h>

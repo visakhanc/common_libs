@@ -13,35 +13,35 @@
 	#define TCCR0_VAL 			3	 /* 64 us */
 	#define HEADER_LOW_COUNT	125  /* For 64us timer, 8ms = 125 counts*/
 	#define HEADER_HIGH_COUNT	62	 /* 4 ms */
-	#define HEADER_HIGH2_COUNT	31	 /* 2 ms */
+	#define HEADER_HIGH2_COUNT	31	 /* 2 ms for repeat code */
 	#define PULSE_THRESHOLD		16   /* 1ms */
 	#define IDLE_HIGH_COUNT		2	 /* 30 ms */
 #elif F_CPU == 2000000
 	#define TCCR0_VAL 			4	 /* 128 us */
 	#define HEADER_LOW_COUNT	62  /* For 128us timer, 8ms = 62 counts */
 	#define HEADER_HIGH_COUNT	31	 /* 4 ms */
-	#define HEADER_HIGH2_COUNT	16	 /* 2 ms */
+	#define HEADER_HIGH2_COUNT	16	 /* 2 ms for repeat code*/
 	#define PULSE_THRESHOLD		8   /* 1ms */
 	#define IDLE_HIGH_COUNT		1	 /* 30 ms */
 #elif F_CPU == 4000000
 	#define TCCR0_VAL 			4 	/* 64 us */
 	#define HEADER_LOW_COUNT	125  /* For 64us timer, 8ms = 125 counts*/
 	#define HEADER_HIGH_COUNT	62	 /* 4 ms */
-	#define HEADER_HIGH2_COUNT	31	 /* 2 ms */
+	#define HEADER_HIGH2_COUNT	31	 /* 2 ms for repeat code */
 	#define PULSE_THRESHOLD		16   /* 1ms */
 	#define IDLE_HIGH_COUNT		2	 /* 30 ms */
 #elif F_CPU == 8000000
 	#define TCCR0_VAL 			5	 /* 128 us */
 	#define HEADER_LOW_COUNT	62  /* For 128us timer, 8ms = 62 counts */
 	#define HEADER_HIGH_COUNT	31	 /* 4 ms */
-	#define HEADER_HIGH2_COUNT	16	 /* 2 ms */
+	#define HEADER_HIGH2_COUNT	16	 /* 2 ms for repeat code */
 	#define PULSE_THRESHOLD		8   /* 1ms */
 	#define IDLE_HIGH_COUNT		1	 /* 30 ms */
 #elif F_CPU == 12000000
 	#define TCCR0_VAL 			5	 /* 85 us */
 	#define HEADER_LOW_COUNT	94  /* For 85us timer, 8ms = 94 counts */
 	#define HEADER_HIGH_COUNT	47	 /* 4 ms */
-	#define HEADER_HIGH2_COUNT	23	 /* 4 ms */
+	#define HEADER_HIGH2_COUNT	23	 /* 2 ms for repeat code */
 	#define PULSE_THRESHOLD		12   /* 1ms */
 	#define IDLE_HIGH_COUNT		1	 /* 30 ms */
 #else
