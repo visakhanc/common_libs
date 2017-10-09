@@ -1,14 +1,15 @@
 /* 
  *  Library to detect remote control code pulses through TSOP18xx IR receiver
- *		- INT0 interrupt and Timer0 is used
+ * 		TSOP1838 output pin is connected to INT0/INT1 of AVR - Define this pin in ir_config.h
  */
  
 #include <stdint.h>
 
+#include "ir_config.h"
 
 /* 	KEY-CODES FOR PANASONIC LCD TV REMOTE
 	Assumes 2 byte address is 0x4004, as found out
-	Assumes higher 2 byte data is 0x0010 as found out
+	Assumes higher 2 byte data is 0x0100 as found out
 	These values are lower 2 bytes of data 
 */
 
@@ -41,7 +42,12 @@
 #define RC_MENU		0x4A4B
 #define RC_EXIT		0xCBCA
 #define RC_RETURN	0x2B2A
-
+#define RC_MUTE		0x4C4D
+#define RC_OPTION	0xE574
+#define RC_INFO		0x9C9D
+#define RC_POWER	0xBCBD
+#define RC_MEDIAPLAYER	0xD544
+#define RC_ASPECT	0x7B5A
 
 typedef struct _rc_code {
 	uint8_t addr[2];
@@ -50,4 +56,5 @@ typedef struct _rc_code {
 
 
 void rc_init(void);
-uint8_t rc_get_code(rc_code_t *code);
+uint8_t rc_wait_get(rc_code_t *code);
+uint8_t rc_get(rc_code_t *code);

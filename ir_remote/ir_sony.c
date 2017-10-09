@@ -1,7 +1,6 @@
 /* 
  *  Library to detect IR remote control code pulses through TSOP1838 IR receiver
- *		- INT0 interrupt and Timer0 is used
- *	TSOP1838 output pin is connected to INT0 of AVR
+ *	TSOP1838 output pin is connected to INT0/INT1 of AVR
  * 	Timer0 is used for timing
  *
  *	This library is for Sony IR (SIRC?) protocol
@@ -43,6 +42,12 @@
 	#error F_CPU not supported for ir_panasonic.c, use another F_CPU
 #endif
 
+
+#if !((IR_INTERRUPT == INT0) || (IR_INTERRUPT == INT1))
+	#error Interrupt pin for IR receiver not defined or invalid definition; Define properly in ir_config.h
+#endif 
+
+
 enum rc_state {
 	RC_INIT = 0,
 	RC_START,
@@ -67,27 +72,47 @@ void rc_init(void)
 {
 	Timer0_Init();
 	
+#if IR_INTERRUPT == INT0 
 	/* External INT0 */
-	MCUCR |= (1 << 1); // Falling edge generates interrupt
-	MCUCR &= ~(1 << 0);
+	MCUCR |= (1 << ISC01); // Falling edge generates interrupt
+	MCUCR &= ~(1 << ISC00);
 	GICR |= (1 << INT0); // Enable interrupt
-	
+#else 
+	/* External INT1 */
+	MCUCR |= (1 << ISC11); // Falling edge generates interrupt
+	MCUCR &= ~(1 << ISC10);
+	GICR |= (1 << INT1); // Enable INT1 interrupt
+#endif
+
 	edge = 0;
 	timer0_ovf = 0;
 	state = RC_INIT;
 }
 
-uint8_t rc_get_code(rc_code_t *code)
+/* Waits for code to be received and returns it */
+uint8_t rc_wait_get(rc_code_t *code)
 {
-	uint8_t ret = 0;
-
 	ready = 0;
 	while(!ready)
 		;
 
 	code->addr = rx_code[1]; // 8 bit address
 	code->data = rx_code[0]; // 7 bit command
+	return 0;
+}
 
+/* Provides received code if any and returns 1
+   If no code is received, returns 0 */
+uint8_t rc_get(rc_code_t *code)
+{
+	uint8_t ret = 0;
+	
+	if(ready) {
+		ready = 0;
+		ret = 1;
+		code->addr = rx_code[1]; // 8 bit address
+		code->data = rx_code[0]; // 7 bit command
+	}	
 	return ret;
 }
 
@@ -98,15 +123,18 @@ ISR(TIMER0_OVF_vect)
 	}
 }
 
-
+#if IR_INTERRUPT == INT0
 ISR(INT0_vect)
+#else
+ISR(INT1_vect)
+#endif
 {
 	static uint8_t bit_count;  /* Number of bits to be received */
 	static uint8_t data; /* received data in 8-bits each */
 	static uint8_t pos; /* bit position */
 	
 	switch(state) {
-		case RC_INIT:  
+		case RC_INIT:
 			if(!edge && (timer0_ovf >= IDLE_HIGH_COUNT)) { /* falling edge after >20ms high time? */
 				state = RC_START;
 			}
@@ -157,11 +185,19 @@ ISR(INT0_vect)
 	
 	if(!edge) { /* This was falling edge, next rising edge */
 		edge = 1;
-		MCUCR |= (1 << 0);
+#if IR_INTERRUPT == INT0
+		MCUCR |= (1 << ISC00);
+#else
+		MCUCR |= (1 << ISC10);
+#endif
 	}
 	else {	/* This was rising edge, next falling edge */
 		edge = 0;
-		MCUCR &= ~(1 << 0);
+#if IR_INTERRUPT == INT0
+		MCUCR &= ~(1 << ISC00);
+#else
+		MCUCR &= ~(1 << ISC10);
+#endif
 	}
 }
 

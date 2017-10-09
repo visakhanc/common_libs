@@ -11,6 +11,7 @@
  
 #include <stdint.h>
 
+#include "ir_config.h"
 
 /* 	
  * KEY-CODES FOR 'data' of Sony Car stereo Remote (Command = 0x84)
@@ -41,7 +42,7 @@
 #define RC_MENU			0x10
 #define RC_RETURN		0x0B
 #define RC_MODE			0x47
-#define RC_FIND			0x27
+#define RC_SEARCH		0x27 /* Lens */
 
 typedef struct _rc_code {
 	uint8_t addr;  	/* 8-bit */
@@ -50,4 +51,5 @@ typedef struct _rc_code {
 
 
 void rc_init(void);
-uint8_t rc_get_code(rc_code_t *code);
+uint8_t rc_wait_get(rc_code_t *code);
+uint8_t rc_get(rc_code_t *code);

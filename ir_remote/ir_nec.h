@@ -1,8 +1,7 @@
 /* 
  *  Library to detect IR remote control code pulses through TSOP18xx IR receiver
- *		- INT0 interrupt and Timer0 is used
  *
- *  TSOP1838 output pin is connected to INT0 of AVR
+ *  TSOP1838 output pin is connected to INT0/INT1 of AVR - Define this pin in ir_config.h
  * 	Timer0 is used for timing
  *
  *	This library is for IR NEC protocol
@@ -11,6 +10,7 @@
  
 #include <stdint.h>
 
+#include "ir_config.h"
 
 /* 	
  * KEY-CODES FOR 'data' of DVD REMOTE (NEC coding)
@@ -64,4 +64,6 @@ typedef struct _rc_code {
 
 
 void rc_init(void);
-uint8_t rc_get_code(rc_code_t *code);
+uint8_t rc_wait_get(rc_code_t* code);
+uint8_t rc_get(rc_code_t* code);
+

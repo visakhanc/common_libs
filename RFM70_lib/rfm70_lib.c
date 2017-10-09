@@ -41,6 +41,8 @@ TODO:
 #include "avr_spi.h"
 #include "rfm70.h"
 
+//#define LED_DEBUG
+
 #define CSN_LOW()	SS_LOW()
 #define CSN_HIGH()	SS_HIGH()
 
@@ -82,11 +84,42 @@ TODO:
 #error "CONFIG_RFM70_RF_CHANNEL not defined - define in rfm70_config.h"
 #endif
 
+#if (CONFIG_RFM70_ACK_PL_ENABLED)
+	#if ((!defined CONFIG_RFM70_ACK_PL_LENGTH) || (CONFIG_RFM70_ACK_PL_LENGTH == 0))
+		#error "CONFIG_RFM70_ACK_PL_LENGTH not defined - define in rfm70_config.h"
+	#endif
+#endif
+
 #if (CONFIG_RFM70_AUTOACK_ENABLED)
 	#if ((!defined CONFIG_RFM70_TX_RETRANSMITS) || (CONFIG_RFM70_TX_RETRANSMITS == 0))
 		#error "CONFIG_RFM70_TX_RETRANSMITS not properly defined - modify in rfm70_config.h"
 	#endif
 #endif
+
+
+/* Auto Retransmission delay (us) */
+#if (CONFIG_RFM70_DATA_RATE == RFM70_RATE_250KBPS)
+	#if (CONFIG_RFM70_ACK_PL_ENABLED) /* ACK with payload */
+		#if (CONFIG_RFM70_ACK_PL_LENGTH < 8)
+		#define CONFIG_RFM70_RETRANS_DELAY 800
+		#elif (CONFIG_RFM70_ACK_PL_LENGTH < 16)
+		#define CONFIG_RFM70_RETRANS_DELAY 1100
+		#elif (CONFIG_RFM70_ACK_PL_LENGTH < 24)
+		#define CONFIG_RFM70_RETRANS_DELAY 1300
+		#else
+		#define CONFIG_RFM70_RETRANS_DELAY 1600
+		#endif
+	#else
+		#define CONFIG_RFM70_RETRANS_DELAY 700  /* Empty ACK */
+	#endif
+#else /* 1Mbps or 2Mbps */
+	#if (CONFIG_RFM70_ACK_PL_ENABLED) /* ACK with payload */
+		#define CONFIG_RFM70_RETRANS_DELAY 700
+	#else /* Empty ACK */
+		#define CONFIG_RFM70_RETRANS_DELAY 300
+	#endif
+#endif
+
 
 /* This is the pipe1 address to be configured for PRX device
 	pipe2...pipe6 address will change only in LSB byte as C3, C4...C6 */
@@ -100,9 +133,21 @@ static uint8_t pipe1_addr[] = CONFIG_RFM70_PIPE1_ADDR;
 
 static void rfm70_irq(void);
 
+#ifdef LED_DEBUG
+#define RED_LED					PC1
+#define RED_LED_DDR				DDRC
+#define RED_LED_PORT			PORTC
+
+#define RED_LED_OUT()			(RED_LED_DDR |= (1 << RED_LED))
+#define RED_LED_OFF()			(RED_LED_PORT |= (1 << RED_LED))
+#define RED_LED_ON()			(RED_LED_PORT &= ~(1 << RED_LED))
+#define RED_LED_TOGGLE()		(RED_LED_PORT ^= (1 << RED_LED))
+static void LED_Debug(uint8_t value);
+#endif
+
 //Bank1 register initialization value
 
-//In the array RegArrFSKAnalog,all the register value is the byte reversed!!!!!!!!!!!!!!!!!!!!!
+//In the array the register value is the byte reversed!!!!!!!!!!!!!!!!!!!!!
 const unsigned long Bank1_Reg0_13[]={       //latest config txt
 0xE2014B40,
 0x00004BC0,
@@ -129,7 +174,7 @@ const uint8_t Bank1_Reg14[]=
 static void mcu_init(void)
 {
 	CE_OUT();
-	SPI_Init(SPI_MODE0, SPI_CLKDIV_4);
+	SPI_Init(SPI_MODE0, SPI_CLKDIV_4);  // SPI_CLKDIV_4
 	
 #if !CONFIG_RFM70_POLLED_MODE
 	/* configure INT1 as LOW-level triggered */
@@ -345,15 +390,11 @@ uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 	rfm70_switch_bank(0);
 	/* Set Address */
 	rfm70_write_reg(SETUP_AW, (uint8_t)(CONFIG_RFM70_ADDR_LEN-2));  /* Address width */
-	if(mode == RFM70_MODE_PTX) { /* For Tx mode, Set same address for Tx and Pipe0 (auto ack) */
-		rfm70_set_address(RFM70_TX_PIPE, address);  
-		rfm70_set_address(RFM70_PIPE0, address);
-	}
-	else { /* For Rx mode, set as many pipe address as needed */
-		rfm70_set_address(RFM70_PIPE0, address);
-		rfm70_set_address(RFM70_PIPE1, pipe1_addr);
-	}
-	
+	/* Set same address for Tx and Rx-Pipe0 (for auto ack) */
+	rfm70_set_address(RFM70_TX_PIPE, address);  
+	rfm70_set_address(RFM70_PIPE0, address);
+	/* Set other pipe addresses */
+	rfm70_set_address(RFM70_PIPE1, pipe1_addr);
 	/* Open channels */
 	reg_val = (1 << 0)|(1 << 1); /* open Pipe0, Pipe1 */
 	rfm70_write_reg(EN_RXADDR, reg_val);
@@ -401,10 +442,12 @@ uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 	}
 	reg_val |= (CONFIG_RFM70_TX_PWR << 1);
 	rfm70_write_reg(RF_SETUP, reg_val);
-
 	/* RF Channel reg*/
 	rfm70_write_reg(RF_CH, CONFIG_RFM70_RF_CHANNEL);	
 	reg_val = rfm70_read_reg(RF_CH);
+#ifdef LED_DEBUG
+	LED_Debug(reg_val);
+#endif
 	if(CONFIG_RFM70_RF_CHANNEL != reg_val) {
 		ret = 1;
 	}
@@ -428,7 +471,6 @@ uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 		WriteArr[j]=Bank1_Reg14[j];
 	}
 	rfm70_write_buf(14,&(WriteArr[0]),11);
-
 	//toggle REG4<25,26>
 	for(j=0;j<4;j++)
 		WriteArr[j]=(Bank1_Reg0_13[4]>>(8*(j) ) )&0xff;
@@ -437,10 +479,9 @@ uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 	
 	WriteArr[0]=WriteArr[0]&0xf9;
 	rfm70_write_buf(4,&(WriteArr[0]),4);
-
 	/* Switch back to bank 0 */
 	rfm70_switch_bank(0);
-	_delay_ms(1);
+	_delay_ms(1); 
 
 	/* Config reg */
 	reg_val = (CONFIG_EN_CRC|CONFIG_CRCO|CONFIG_PWR_UP);
@@ -449,11 +490,8 @@ uint8_t rfm70_init(rfm70_opmode_t mode, const uint8_t *address)
 		rfm70_write_reg(FLUSH_RX,0);//flush Rx fifo
 		CE_HIGH(); /* Set CE High for Rx mode */
 	}
-	else {
-		rfm70_write_reg(FLUSH_TX,0);//flush Tx fifo
-	}
 	rfm70_write_reg(CONFIG, reg_val);
-	
+	rfm70_write_reg(FLUSH_TX,0);//flush Tx fifo
 	/* Clear interrupt flags */
 	rfm70_write_reg(STATUS,STAT_TX_DS|STAT_MAX_RT|STAT_RX_DR); 
 	
@@ -494,7 +532,7 @@ void rfm70_tx_mode(void)
 	value=value&0xfe;//clear bit 0
 	value |= (1 << 1); // Set PWR_UP bit
   	rfm70_write_reg(CONFIG, value); // Set PWR_UP bit, enable CRC(2 length) & Prim:RX. RX_DR enabled.
-
+	
 	_delay_ms(2); // Power-up delay 1.5 ms
 }
 
@@ -583,14 +621,19 @@ void rfm70_set_ack_payload(uint8_t pipe, uint8_t *buf, uint8_t length)
 {
 	CSN_LOW();
 	SPI_TxRx(WR_ACK_PLOAD|pipe);
-	/*while(length--) {
-		SPI_TxRx(*buf++);
-	}*/
 	SPI_TxBuf(buf, length);
 	CSN_HIGH();
 }
 
 
+/*
+ *	Flush TX FIFO
+ */
+ void rfm70_flush_txfifo(void)
+ {
+	rfm70_write_reg(FLUSH_TX,0);
+ }
+ 
 /* Function to handle RFM70 Interupt; also used to poll the status continuously */
 static void rfm70_irq(void)
 {
@@ -635,5 +678,25 @@ ISR(INT1_vect)
 {	
 	//PORTB &= ~(1 << 0); // LED OFF
 	rfm70_irq();
+}
+#endif
+
+
+#ifdef LED_DEBUG
+static void LED_Debug(uint8_t value)
+{
+	volatile uint8_t i;
+	for(i = 0; i < 8; i++) {
+		RED_LED_ON();
+		_delay_ms(50);
+		RED_LED_OFF();
+		_delay_ms(50);
+		if(value & (1 << i)) {
+			RED_LED_ON();
+			_delay_ms(50);
+			RED_LED_OFF();
+		}
+		_delay_ms(700);
+	}
 }
 #endif

@@ -18,6 +18,6 @@ void rfm70_set_ack_payload(uint8_t pipe, uint8_t *buf, uint8_t length);
 void rfm70_powerdown(void);
 void rfm70_tx_mode(void);
 void rfm70_rx_mode(void);
-
+ void rfm70_flush_txfifo(void);
 
 #endif

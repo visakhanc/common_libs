@@ -1,6 +1,6 @@
 /* 
  *  Library to detect remote control code pulses through TSOP18xx IR receiver
- *		- INT0 interrupt and Timer0 is used
+ *		
  */
  
 #include <avr/io.h>
@@ -45,8 +45,13 @@
 	#define PULSE_THRESHOLD		12   /* 1ms */
 	#define IDLE_HIGH_COUNT		1	 /* 30 ms */
 #else
-	#error F_CPU not supported for ir_panasonic.c, use another F_CPU
+	#error F_CPU not supported for ir_nec.c, use another F_CPU
 #endif
+
+
+#if !((IR_INTERRUPT == INT0) || (IR_INTERRUPT == INT1))
+	#error Interrupt pin for IR receiver not defined or invalid definition; Define properly in ir_config.h
+#endif 
 
 enum rc_state {
 	RC_INIT = 0,
@@ -73,17 +78,27 @@ void rc_init(void)
 {
 	Timer0_Init();
 	
+#if IR_INTERRUPT == INT0 
 	/* External INT0 */
-	MCUCR |= (1 << 1); // Falling edge generates interrupt
-	MCUCR &= ~(1 << 0);
+	MCUCR |= (1 << ISC01); // Falling edge generates interrupt
+	MCUCR &= ~(1 << ISC00);
 	GICR |= (1 << INT0); // Enable interrupt
-	
+#else 
+	/* External INT1 */
+	MCUCR |= (1 << ISC11); // Falling edge generates interrupt
+	MCUCR &= ~(1 << ISC10);
+	GICR |= (1 << INT1); // Enable INT1 interrupt
+#endif
+
 	edge = 0;
 	timer0_ovf = 0;
 	state = RC_INIT;
 }
 
-uint8_t rc_get_code(rc_code_t *code)
+/* Waits for code to be received and returns it 
+	Return: 0 - success
+			1 - error in received code */
+uint8_t rc_wait_get(rc_code_t *code)
 {
 	uint8_t ret = 0;
 
@@ -102,6 +117,31 @@ uint8_t rc_get_code(rc_code_t *code)
 	return ret;
 }
 
+
+/* Provides received code if any
+	Return:
+		No code is received or if error in code - 0
+		Code received OK - 1 
+*/
+uint8_t rc_get(rc_code_t *code)
+{
+	uint8_t ret = 0;
+	
+	if(ready) {
+		ready = 0;
+		ret = 1;
+		/* Check received codes are OK */
+		if((rx_code[0] & rx_code[1]) || (rx_code[2] & rx_code[3])) {
+			ret = 0; // error with received code
+		}
+		code->addr = rx_code[0];
+		code->data = rx_code[2];
+	}
+	
+	return ret;
+}
+
+
 ISR(TIMER0_OVF_vect)
 {
 	if(~timer0_ovf) { /* increment only upto 0xFF */
@@ -109,8 +149,11 @@ ISR(TIMER0_OVF_vect)
 	}
 }
 
-
+#if IR_INTERRUPT == INT0
 ISR(INT0_vect)
+#else
+ISR(INT1_vect)
+#endif
 {
 	static uint8_t bit_count;  /* present bits in data */
 	static uint8_t data; /* received data in 8-bits each */
@@ -184,11 +227,19 @@ ISR(INT0_vect)
 	
 	if(!edge) { /* This was falling edge, next rising edge */
 		edge = 1;
-		MCUCR |= (1 << 0);
+#if IR_INTERRUPT == INT0
+		MCUCR |= (1 << ISC00);
+#else
+		MCUCR |= (1 << ISC10);
+#endif
 	}
 	else {	/* This was rising edge, next falling edge */
 		edge = 0;
-		MCUCR &= ~(1 << 0);
+#if IR_INTERRUPT == INT0
+		MCUCR &= ~(1 << ISC00);
+#else
+		MCUCR &= ~(1 << ISC10);
+#endif
 	}
 }
 

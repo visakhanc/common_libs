@@ -71,6 +71,30 @@
 #endif
 
 
+/* Auto Retransmission delay (us) */
+#if (CONFIG_RFM70_DATA_RATE == RFM70_RATE_250KBPS)
+	#if (CONFIG_RFM70_ACK_PL_ENABLED) /* ACK with payload */
+		#if (CONFIG_RFM70_ACK_PL_LENGTH < 8)
+		#define CONFIG_RFM70_RETRANS_DELAY 800
+		#elif (CONFIG_RFM70_ACK_PL_LENGTH < 16)
+		#define CONFIG_RFM70_RETRANS_DELAY 1100
+		#elif (CONFIG_RFM70_ACK_PL_LENGTH < 24)
+		#define CONFIG_RFM70_RETRANS_DELAY 1300
+		#else
+		#define CONFIG_RFM70_RETRANS_DELAY 1600
+		#endif
+	#else
+		#define CONFIG_RFM70_RETRANS_DELAY 700  /* Empty ACK */
+	#endif
+#else /* 1Mbps or 2Mbps */
+	#if (CONFIG_RFM70_ACK_PL_ENABLED) /* ACK with payload */
+		#define CONFIG_RFM70_RETRANS_DELAY 700
+	#else /* Empty ACK */
+		#define CONFIG_RFM70_RETRANS_DELAY 300
+	#endif
+#endif
+
+
 static volatile uint8_t tx_done;
 static volatile uint8_t rx_ready;
 static volatile uint8_t max_retries;

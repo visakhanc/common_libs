@@ -3,14 +3,23 @@
 #include <avr/interrupt.h>
 #include "avr_twi.h"
 
-#define RED_LED					PB0
-#define RED_LED_DDR				DDRB
-#define RED_LED_PORT			PORTB
+//#define TWI_DEBUG
 
-#define RED_LED_OUT()			(RED_LED_DDR |= (1 << RED_LED))
-#define RED_LED_ON()			(RED_LED_PORT |= (1 << RED_LED))
-#define RED_LED_OFF()			(RED_LED_PORT &= ~(1 << RED_LED))
-#define RED_LED_TOGGLE()		(RED_LED_PORT ^= (1 << RED_LED))
+#define RED_LED					PC1
+#define RED_LED_DDR				DDRC
+#define RED_LED_PORT			PORTC
+
+#ifdef TWI_DEBUG
+	#define RED_LED_OUT()			(RED_LED_DDR |= (1 << RED_LED))
+	#define RED_LED_OFF()			(RED_LED_PORT |= (1 << RED_LED))
+	#define RED_LED_ON()			(RED_LED_PORT &= ~(1 << RED_LED))
+	#define RED_LED_TOGGLE()		(RED_LED_PORT ^= (1 << RED_LED))
+#else
+	#define RED_LED_OUT()
+	#define RED_LED_ON()
+	#define RED_LED_OFF()
+	#define RED_LED_TOGGLE()
+#endif
 
 static volatile uint8_t  twi_status = TWI_STATUS_DONE;
 static twi_params_t *twi_params;
@@ -19,8 +28,9 @@ static twi_params_t *twi_params;
 /* Initialize TWI module */
 void TWI_Init(void)
 {
-	/* Bit rate = 100kHz */
-	TWBR = 8; // 8 MHz clock will give 100 kHz SCL frequency
+	/* Bit rate */
+	RED_LED_OUT();
+	TWBR = 3; // 8 MHz clock will give 200 kHz SCL frequency
 }
 
 /* TWI transfer API */
@@ -34,13 +44,13 @@ twi_status_t TWI_Master_Transfer(twi_params_t *params)
 	/* Set parameters for the current transfer */
 	twi_status = TWI_STATUS_BUSY;
 	twi_params = params;
-	
+	RED_LED_ON();
 	/* Send start condition */
 	TWCR = _BV(TWINT)|_BV(TWEA)|_BV(TWSTA)|_BV(TWEN)|_BV(TWIE); // Enable interrupt as well 
 	
 	while(twi_status == TWI_STATUS_BUSY)
 		;
-		
+	RED_LED_OFF();
 	return twi_status;
 }
 
@@ -69,7 +79,6 @@ ISR(TWI_vect)
 					TWCR = _BV(TWINT)|_BV(TWEN)|_BV(TWIE)|_BV(TWSTA); /* send START if data to be read */ 
 				}
 				else {
-					RED_LED_ON();
 					TWCR = _BV(TWINT)|_BV(TWEN)|_BV(TWIE)|_BV(TWSTO); /* otherwise STOP to finish transfer */
 					twi_status = TWI_STATUS_DONE;
 				}

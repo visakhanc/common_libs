@@ -16,7 +16,7 @@ typedef enum  {
 
 /* Parameters defining a transfer, passed to the TWI transfer API */
 typedef struct {
-	uint8_t 		slave_addr;		/* Slave address for the transfer, should contain slave address in bits [6:0] */
+	uint8_t 		slave_addr;		/* Slave address for the transfer, should contain 7-bit slave address in bits [6:0] */
 	uint8_t 		*tx_buf;		/* Buffer containing data to be transmitted to slave */
 	uint8_t 		tx_count;		/* Number of bytes to be transmitted to slave */
 	uint8_t 		*rx_buf;		/* Buffer to store data received from slave */

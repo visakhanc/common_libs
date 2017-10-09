@@ -1,10 +1,11 @@
 /* 
  *  Library to detect RC5 code pulses through TSOP1768 IR receiver
- *		- INT0 interrupt and Timer0 is used
+ *		TSOP1838 output pin is connected to INT0/INT1 of AVR - Define this pin in ir_config.h
  */
  
 #include <stdint.h>
 
+#include "ir_config.h"
 
 // KEY-CODES FOR PHILIPS TV REMOTE
 #define RC5_ZERO 0
