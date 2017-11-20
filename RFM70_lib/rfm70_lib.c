@@ -176,15 +176,17 @@ static void mcu_init(void)
 	CE_OUT();
 	SPI_Init(SPI_MODE0, SPI_CLKDIV_4);  // SPI_CLKDIV_4
 	
-#if !CONFIG_RFM70_POLLED_MODE
-	/* configure INT1 as LOW-level triggered */
-	MCUCR &= ~(1 << ISC11);
-	MCUCR &= ~(1 << ISC10);
-	
-	/* Enable INT1 interrupt for  IRQ */
+#if !CONFIG_RFM70_POLLED_MODE /* configure INT1 as LOW-level triggered */
+
+#if defined  EICRA 
+	EICRA &= ~((1 << ISC10)|(1 << ISC11));
+	EIMSK |= (1 << INT1);
+#else
+	MCUCR &= ~((1 << ISC11)|(1 << ISC10));
 	GICR |= (1 << INT1);
 #endif
-
+	
+#endif
 }
 
 /* Reads from a register */
