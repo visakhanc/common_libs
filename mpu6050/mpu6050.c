@@ -48,7 +48,8 @@ uint8_t mpu6050_init(uint8_t mode)
 	}
 	/* Set accelerometer Full Scale range to +/-4g */
 	tx_data[0] = 0x1C;
-	tx_data[1] = (1 << 3);
+	tx_data[1] = 0;
+	//tx_data[1] = (1 << 3);
 	params.tx_buf = &tx_data[0];
 	params.tx_count = 2;
 	if(TWI_Master_Transfer(&params) != TWI_STATUS_DONE) {
