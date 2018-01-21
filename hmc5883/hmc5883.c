@@ -59,17 +59,17 @@ uint8_t hmc5883_get_data(uint8_t *buf)
 
 uint8_t hmc5883_set_config(uint8_t config)
 {
-
+	return 0;
 }
 
 
 uint8_t hmc5883_set_mode(uint8_t mode)
 {
-
+	return 0;
 }
 
 
 uint8_t hmc5883_set_gain(uint8_t gain)
 {
-
+	return 0;
 }
