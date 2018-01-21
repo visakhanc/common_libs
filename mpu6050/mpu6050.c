@@ -1,3 +1,9 @@
+/* 
+ *	MPU6050 Accelerometer-Gyroscope sensor library for AVR MCUs
+ *	
+ *	Created: May 10, 2016
+ */
+
 
 #include "mpu6050.h"
 #include "avr_twi.h"
@@ -30,13 +36,14 @@ uint8_t mpu6050_init(uint8_t mode)
 	if(mode == MPU6050_LOW_POWER_ACCEL_MODE) {
 		/* Enable Low power Accelerometer-only mode */
 		tx_data[0] = 0x6B;
-		tx_data[1] = (1 << 3)|(1 << 5);
+		tx_data[1] = (1 << 3);//|(1 << 5);
 		tx_data[2] = 0x7;
 		params.tx_buf = &tx_data[0];
 		params.tx_count = 3;
 		if(TWI_Master_Transfer(&params) != TWI_STATUS_DONE) {
 			return 1;
 		}
+#if 0
 		/* Change wakeup rate to 40Hz */
 		tx_data[0] = 0x6C;
 		tx_data[1] = (1 << 7)|(1 << 6)|0x7;
@@ -45,11 +52,19 @@ uint8_t mpu6050_init(uint8_t mode)
 		if(TWI_Master_Transfer(&params) != TWI_STATUS_DONE) {
 			return 1;
 		}
+#endif
 	}
-	/* Set accelerometer Full Scale range to +/-4g */
+	/* Set low-pass filter for 5Hz */
+	tx_data[0] = 0x1A;
+	tx_data[1] = 0x6;
+	params.tx_buf = &tx_data[0];
+	params.tx_count = 2;
+	if(TWI_Master_Transfer(&params) != TWI_STATUS_DONE) {
+		return 1;
+	}
+	/* Set accelerometer Full Scale range to (+/-)16g */
 	tx_data[0] = 0x1C;
-	tx_data[1] = 0;
-	//tx_data[1] = (1 << 3);
+	tx_data[1] = (0x3 << 3);
 	params.tx_buf = &tx_data[0];
 	params.tx_count = 2;
 	if(TWI_Master_Transfer(&params) != TWI_STATUS_DONE) {
