@@ -27,7 +27,7 @@ typedef struct {
 /* Initialize TWI bus - This will set the clock frequency to 100 kHz */
 void TWI_Init(void);
 
-/* Performs a TWI transfer, based on parameters passed 
+/* Performs a TWI transfer, based on parameters passed and blocks until transfer is finished
  *		The twi_params_t struct should have following members initialized:
  *			slave_addr - 7 bit slave address in [6:0]
  *			tx_buf, tx_count - Valid tx buffer address and count (NULL/0 if no tx)
@@ -36,5 +36,27 @@ void TWI_Init(void);
  *		Returns: Final status of the transfer(0 = success)
  */
 twi_status_t TWI_Master_Transfer(twi_params_t *params);
+
+
+/* (NOT IMPLEMENTED)
+ * Performs a Non-blocking TWI transfer, based on parameters passed.
+ * Before calling, use TWI_Master_Status() to make sure TWI is currently NOT busy
+ *		The twi_params_t struct should have following members initialized:
+ *			slave_addr - 7 bit slave address in [6:0]
+ *			tx_buf, tx_count - Valid tx buffer address and count (NULL/0 if no tx)
+ *			rx_buf, rx_count - Valid rx buffer address and count (NULL/0 if no rx)
+ *
+ *		Returns: 0 = TWI transfer started
+ *				 1 = TWI is busy and transfer is cancelled
+ */
+uint8_t TWI_Master_Transfer_NB(twi_params_t *params);
+
+
+/*	Returns current status of TWI 
+ *	Use this function with non-blocking TWI transfer to know if the previous transfer is done
+ */
+twi_status_t TWI_Master_Status(void);
+
+
 
 
