@@ -2,16 +2,13 @@
  *
  * 	spi.h
  *
- *  SPI polled driver for AVR
+ *  Polled SPI driver for AVR
  *
  ************************************************/
  
- #include <stdint.h>
- 
-/* SPI Chip select pin */
-#define 	SS_DDR		DDRB
-#define 	SS_PORT		PORTB
-#define 	SS_PIN		2		
+#include <stdint.h>
+#include "spi_config.h" 
+
 
 typedef enum spi_mode
 {
@@ -34,8 +31,8 @@ typedef enum spi_clk_div
 } SPI_CLKDIV_t;
 
 
-#define SS_HIGH()		(SS_PORT |= (1 << SS_PIN))
-#define SS_LOW()		(SS_PORT &= ~(1 << SS_PIN))
+#define SS_HIGH()		(SPI_PORT |= (1 << SS_BIT))
+#define SS_LOW()		(SPI_PORT &= ~(1 << SS_BIT))
 
 	
 /* Prototypes */

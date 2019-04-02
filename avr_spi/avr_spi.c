@@ -2,7 +2,7 @@
  *
  *	spi.c
  *
- *  SPI driver(polled) for AVR
+ *  Polled SPI driver for AVR
  *
  ************************************************/
 
@@ -12,11 +12,10 @@
 /* Initialize the SPI interface in Master mode with given SPI mode and clock rate division */
 void SPI_Init(SPI_MODE_t mode, SPI_CLKDIV_t clk_div)
 {
-	/* Set MOSI, SCK as ouput */
-	DDRB |= (1 << 3)|(1 << 5);
+	/* Set MOSI, SCK, SS as ouput */
+	SPI_DDR |= (1 << MOSI_BIT)|(1 << SCK_BIT)|(1 << SS_BIT);
 	
-	/* Slave Select pin is output, initially HIGH */
-	SS_DDR |= (1 << SS_PIN);
+	/* Slave Select pin is initially HIGH */
 	SS_HIGH();
 	
 	/* Initialize SPI */
