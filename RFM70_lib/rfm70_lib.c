@@ -134,9 +134,9 @@ static uint8_t pipe1_addr[] = CONFIG_RFM70_PIPE1_ADDR;
 static void rfm70_irq(void);
 
 #ifdef LED_DEBUG
-#define RED_LED					PC1
-#define RED_LED_DDR				DDRC
-#define RED_LED_PORT			PORTC
+#define RED_LED					PB0
+#define RED_LED_DDR				DDRB
+#define RED_LED_PORT			PORTB
 
 #define RED_LED_OUT()			(RED_LED_DDR |= (1 << RED_LED))
 #define RED_LED_OFF()			(RED_LED_PORT |= (1 << RED_LED))
@@ -148,7 +148,7 @@ static void LED_Debug(uint8_t value);
 //Bank1 register initialization value
 
 //In the array the register value is the byte reversed!!!!!!!!!!!!!!!!!!!!!
-const unsigned long Bank1_Reg0_13[]={       //latest config txt
+const unsigned long Bank1_Reg0_13[] = {       //latest config txt
 0xE2014B40,
 0x00004BC0,
 0x028CFCD0,

@@ -3,8 +3,8 @@
  * 
  */
 
-#ifndef NRF24L01P_REG_H
-#define NRF24L01P_REG_H
+#ifndef NRF24L01_REG_H
+#define NRF24L01_REG_H
 
 
 /* nRF24L01 Instruction Definitions */
@@ -124,4 +124,4 @@ typedef enum {
 } nrf_pipe_t;
 
 
-#endif  // NRF24L01P_REG_H
+#endif  // NRF24L01_REG_H

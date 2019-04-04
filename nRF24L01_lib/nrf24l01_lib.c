@@ -1,5 +1,5 @@
 /*
- * 	nRF24L01P library
+ * 	nRF24L01+ library
  *
  */
 
@@ -8,7 +8,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include "avr_spi.h"
-#include "nrf24l01P.h"
+#include "nrf24l01.h"
 
 /* 
  *  Example connection layout (CE pin can change)
