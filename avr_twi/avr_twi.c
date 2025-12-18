@@ -33,7 +33,7 @@ void TWI_Init(void)
 #if F_CPU == 20000000
 	TWBR = 17; // 20MHz crystal => 408kHz
 #elif F_CPU == 16000000
-	TWBR = 3; // 16MHz crystal => 410kHz
+	TWBR = 12; // 16MHz crystal => 410kHz
 #elif F_CPU == 12000000
 	TWBR = 7; // 12MHz crystal => 413kHz
 #elif F_CPU == 8000000
@@ -169,4 +169,12 @@ ISR(TWI_vect)
 			break;
 	}
 	
+}
+
+
+
+void TWI_Reset(void)
+{
+    TWCR &= ~(_BV(TWSTO)|_BV(TWEN));
+    TWCR |= _BV(TWEN);
 }

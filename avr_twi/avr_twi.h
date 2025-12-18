@@ -58,5 +58,8 @@ uint8_t TWI_Master_Transfer_NB(twi_params_t *params);
 twi_status_t TWI_Master_Status(void);
 
 
+/* Necessary after waking up from PowerSave/PowerDown sleep modes (Bug) */
+void TWI_Reset(void);
+
 
 
