@@ -4,8 +4,8 @@
  *	@details 	rf24_config.h file defines various parameters used to initialize and configure the RF module for a project.
  *				To use this sample file, copy it to the project directory, rename it to rf24_config.h and modify
  *				the parameters according to the project's need.
- *	@attention 	IMPORTANT: Each project using rf24 library should have \a rf24_config.h present in the project directory. Project should be rebuilt
- *				after any modification of this file.
+ *	@attention 	IMPORTANT: Each project using rf24 library should have \a rf24_config.h present in the project directory.
+ *				Project should be rebuilt after any modification of this file.
  */
 
 #ifndef RF24_CONFIG_H_
@@ -94,8 +94,8 @@
  * \brief	Define transmit output power level
  * \details	Define this to:
  *
- *			RF24_PWR_0DBM 	:  0 dBm		\n
- *			RF24_PWR_M6DBM 	: -6 dBm		\n
+ *			RF24_PWR_0DBM 	:  0 dBm	\n
+ *			RF24_PWR_M6DBM 	: -6 dBm	\n
  * 			RF24_PWR_M12DBM : -12 dBm	\n
  * 			RF24_PWR_M18DBM : -18 dBm
  */

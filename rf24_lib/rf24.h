@@ -10,8 +10,6 @@
 
 #include <stdint.h>
 
-/* rf24_config.h is project specific specific and should be present in the project directory */
-#include "rf24_config.h"
 
 
 
@@ -79,6 +77,7 @@ uint8_t rf24_transmit_packet_noack(const uint8_t *packet, uint8_t length);
 uint8_t rf24_receive_packet(uint8_t* pbuf, uint8_t* length);
 void 	rf24_set_ack_payload(uint8_t pipe, const uint8_t *buf, uint8_t length);
 void 	rf24_powerdown(void);
+void 	rf24_powerup(void);
 void 	rf24_tx_mode(void);
 void 	rf24_rx_mode(void);
 void 	rf24_flush_txfifo(void);
