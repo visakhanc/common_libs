@@ -15,6 +15,11 @@ void SPI_Init(SPI_MODE_t mode, SPI_CLKDIV_t clk_div)
 	/* Set MOSI, SCK, SS as ouput */
 	SPI_DDR |= (1 << MOSI_BIT)|(1 << SCK_BIT)|(1 << SS_BIT);
 	
+#ifdef ALT_SS_DDR
+	/* Initialize alternate pin to be used as SS */
+	ALT_SS_DDR |= (1 << ALT_SS_BIT);
+#endif
+	
 	/* Slave Select pin is initially HIGH */
 	SS_HIGH();
 	
@@ -42,7 +47,7 @@ uint8_t SPI_TxRx(uint8_t data)
 }
 
 
-void SPI_TxBuf(uint8_t *buf, uint16_t length)
+void SPI_TxBuf(const uint8_t *buf, uint16_t length)
 {
 	while(length--)
 	{

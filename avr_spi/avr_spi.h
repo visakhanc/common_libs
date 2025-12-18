@@ -31,13 +31,19 @@ typedef enum spi_clk_div
 } SPI_CLKDIV_t;
 
 
-#define SS_HIGH()		(SPI_PORT |= (1 << SS_BIT))
-#define SS_LOW()		(SPI_PORT &= ~(1 << SS_BIT))
+
+#ifndef ALT_SS_PORT
+	#define SS_HIGH()		(SPI_PORT |= (1 << SS_BIT))
+	#define SS_LOW()		(SPI_PORT &= ~(1 << SS_BIT))
+#else
+	#define SS_HIGH()		(ALT_SS_PORT |= (1 << ALT_SS_BIT))
+	#define SS_LOW()		(ALT_SS_PORT &= ~(1 << ALT_SS_BIT))
+#endif
 
 	
 /* Prototypes */
 
 void SPI_Init(SPI_MODE_t mode, SPI_CLKDIV_t clk_div);
 uint8_t SPI_TxRx(uint8_t data);
-void SPI_TxBuf(uint8_t *buf, uint16_t length);
+void SPI_TxBuf(const uint8_t *buf, uint16_t length);
 void SPI_RxBuf(uint8_t *buf, uint16_t length);

@@ -231,7 +231,7 @@ void oled_update_number_hex(struct oled_disp_struct *num_struct, uint16_t num);
  *                oled_update_text(&oled_num, "Hello");
  *
  * @param disp_struct - Structure initialized with starting row(0-7) and column(0-127)
- * @param text - String to display
+ * @param text - String to display (Should be NULL terminated)
  */
 void oled_update_text(struct oled_disp_struct *disp_struct, char *text);
 
