@@ -1,4 +1,6 @@
 NRF24L01+ library for AVR
 =========================
 
-A library for easiliy adding the popular nRF24l01+ modules to any AVR project
+<span style="color: red;">No longer updated</span>
+
+Use the *rf24_lib* in [common-libs](https://github.com/visakhanc/common_libs) instead

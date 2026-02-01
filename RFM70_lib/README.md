@@ -1,5 +1,6 @@
 RFM70 library for AVR
 =====================
 
-A library for RFM70 radio modules for using with AVR projects
+<span style="color: red;">No longer updated</span>
 
+Use the *rf24_lib* in [common-libs](https://github.com/visakhanc/common_libs) instead
